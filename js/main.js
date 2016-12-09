@@ -7,14 +7,17 @@ console.log("SEAF Fired"); //Self-Executing Anonymous Function
 //http://stackoverflow.com/questions/13563471/random-colors-for-circles-in-d3-js-graph
 //http://vallandingham.me/vis/gates/
 //https://github.com/d3/d3-force
+//https://www.youtube.com/watch?v=Z0PpaI0UlkE
 //https://www.youtube.com/watch?v=lPr60pexvEM
 //http://www.nytimes.com/interactive/2012/02/13/us/politics/2013-budget-proposal-graphic.html?_r=0
 //https://github.com/vlandham/vlandham.github.com/blob/master/vis/gates/coffee/vis.coffee
 
+//Data used - https://data.oecd.org/emp/employment-rate.htm
+
 var data = [];//create the array for php information
 var ajax = new XMLHttpRequest(); //make the request
 
-var width = 800;
+var width = 800; //set dimentions of svg container
 var height = 500;
 
 //var colour = d3.schemeCategory20();
@@ -30,9 +33,10 @@ var div = d3.select("body").append("div") //create an imaginary div for the tool
     .attr("class", "tooltip")
     .style("opacity", 0);
 
+//use the square root scale for the radius of a circle
 var radiusScale = d3.scaleSqrt().domain([1, 500]).range([10, 80]) //set the smallest and largest values, and set the size range (based off the population information)
 
-//define the built in D3 force for the bubbles (based on the button selection) so they can either come together or move appart
+//define the built in D3 force for the bubbles (based on the button selection) so they can either come together or move appart across the x and y axis
 var XOne = d3.forceX(function(d) {
     if(d.country_edurating === "low") {
         return 100
@@ -41,8 +45,11 @@ var XOne = d3.forceX(function(d) {
     }else{
         return 700
     }
-
 }).strength(0.05)
+
+//if a country has a low education rate move to the left
+//else if if a country has a medium education rate move stay in the center
+//else if a country has a high education rate move to the right and go up
 
 var YOne = d3.forceY(function(d){
     if(d.country_edurating === "low") {
@@ -53,6 +60,8 @@ var YOne = d3.forceY(function(d){
         return 100
     }
 }).strength(0.5)
+
+//if a country has a low employment rate move to the left, else/otherwise move to the right
 
 var XTwo = d3.forceX(function(d){
     if(d.country_employment < 65) {
@@ -72,13 +81,14 @@ var YTwo = d3.forceY(function(d){
 }).strength(0.5)
 
 var forceCollide = d3.forceCollide(function(d) { //the collision force grows based on the size of the circle (plus a bit more padding around)
-    return radiusScale(d.country_pop) + 3;
+    return radiusScale(d.country_pop) + 10; //set the amount of space/padding you want between the bubbles so they do not overlase
 })
 
+//the simulation is essentially a bunch of forces that are put together
 var simulation = d3.forceSimulation() //create force simulations and applies forces to each item so they can go somewhere (being the middle)
-    .force("x", d3.forceX(width / 2).strength(0.5)) //helps to position the circles in the middle of the y and x axis
-    .force("y", d3.forceY(height / 2).strength(0.5))
-    .force("collide", forceCollide)
+    .force("x", d3.forceX(width / 2).strength(0.5)) //helps to position the circles in the middle of the x axis
+    .force("y", d3.forceY(height / 2).strength(0.5)) //helps to position the circles in the middle of the y axis
+    .force("collide", forceCollide) //apply the same force to every circle
 
 //Connect to the JSON file created from the database information
 d3.queue()
@@ -94,8 +104,8 @@ function ready (error, pop) {
             return radiusScale(d.country_pop) //the radius of each of the circles depends on the population of each country
         })
 
-    .style("fill",function() { return "hsl(" + Math.random()*55 + ",70%,50%)";}) //generate a random colour for each bubble upon first load/refresh
-    .attr("stroke", "#d83426")
+    .style("fill",function() { return "hsl(" + Math.random()*55 + ",70%,50%)";}) //generate a certain random colour for each bubble upon first load/refresh
+    .attr("stroke", "#d83426") //set the stroke
 
     //stuff that will happen when bubble(s) are hovered over
     d3.selectAll("circle")
@@ -163,15 +173,15 @@ function ready (error, pop) {
             .force("y",  d3.forceY(height / 2).strength(0.3))
             .alphaTarget(0.5)
             .restart()
-        console.log("Clicked")
+        console.log("Clicked") //just a check
     })
 
-    simulation.nodes(pop) //constantly refreshes the bubbles so the position is known at all times
-    .on('tick', ticked)
-    function ticked(){
+    simulation.nodes(pop)
+    .on('tick', refresh) //constantly refreshes/updates the bubbles so the position is known at all times
+    function refresh(){
     circles
         .attr("cx", function(d) {
-            return d.x //the x coordinates
+            return d.x //set the x coordinates
         })
         .attr("cy", function(d){
             return d.y //the y coordinates
